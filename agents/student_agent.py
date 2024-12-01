@@ -6,6 +6,7 @@ import numpy as np
 from copy import deepcopy
 import time
 from helpers import random_move, count_capture, execute_move, check_endgame, get_valid_moves
+import random
 
 @register_agent("student_agent")
 class StudentAgent(Agent):
@@ -17,55 +18,74 @@ class StudentAgent(Agent):
     def __init__(self):
         super(StudentAgent, self).__init__()
         self.name = "StudentAgent"
+        self.real_color = None
 
-    def minimax(self, board, self_player, color, start, depth):
+    def minimax(self, board, self_player, color, start, depth, max_depth, t, a=float('-inf'), b=float('inf')):
+        if (time.time() - t) > 1.9:
+            # Timeout: Return a very low score for max_player or high score for min_player
+            return float('-inf') if self_player else float('inf')
+
         legal_moves = get_valid_moves(board, color)
+        #MAKE IT SO THAT EDGE PIECES ARE PRIORITIZED?
+        random.shuffle(legal_moves)
         max_score = float('-inf')
         min_score = float('inf')
         best_move = None
-        max_depth = 2
-        org_color = color
-        if not self_player:
-            if color == 1:
-                color = 2
-            else:
-                color = 1
-
+        op_color = 3 - color
+        corners = [(0, 0), (0, board.shape[1] - 1), (board.shape[0] - 1, 0), (board.shape[0] - 1, board.shape[1] - 1)]
         
-        if (depth > max_depth):
-            _, player_score, opponent_score = check_endgame(board, org_color, 3 - org_color)
+        fin, player_score, opponent_score = check_endgame(board, color, op_color)
+
+        if self.real_color is None:
+            self.real_color = color
+
+
+        if (depth > max_depth) or fin:
+            _, player_score, opponent_score = check_endgame(board, self.real_color, 3-self.real_color)
             return player_score - opponent_score
-            #return player_score
         
 
-        if (not legal_moves):
-            print("NO LEGAL MOVES!!!!!!!\n\n\n-------------------------------------")
-            return None
-        
+        if not legal_moves:
+            # If no moves are legal, evaluate the board or return a neutral score
+            #return player_score - opponent_score
+            return self.minimax(deepcopy(board), not self_player, op_color, False, depth + 1, max_depth, t, a, b)
+
+        # Loop through all possible moves
         for move in legal_moves:
             sim_board = deepcopy(board)
+            if move in corners:
+                max_score = 100
+                best_move = move
+                break
 
             if self_player:
                 execute_move(sim_board, move, color)
-                score = self.minimax(sim_board, False, color, False, depth + 1)
-                if score > max_score:
+                score = self.minimax(sim_board, False, op_color, False, depth + 1, max_depth, t, a, b)
+                if score >= max_score:
                     max_score = score
                     best_move = move
+                a = max(a, score)
+                if a >= b:
+                    break
             else:
                 execute_move(sim_board, move, color)
-                score = self.minimax(sim_board, True, color, False, depth + 1)
-                if score < min_score:
+                score = self.minimax(sim_board, True, op_color, False, depth + 1, max_depth, t, a, b)
+                if score <= min_score:
                     min_score = score
                     best_move = move
-            #move_score = self.evaluate_board(sim_board, player, player_score, opponent_score)
+                b = min(b, score)
+                if a >= b:
+                    break
 
-   
+        # Return the best move if at the root of the search
         if start:
+            if best_move is None:
+                print("BEST MOVE IS NONE!")
             return best_move
-        elif self_player:
-            return max_score
-        else:
-            return min_score
+
+        # Otherwise, return the best score
+        return max_score if self_player else min_score
+
 
 
 
@@ -89,13 +109,29 @@ class StudentAgent(Agent):
         # Some simple code to help you with timing. Consider checking 
         # time_taken during your search and breaking with the best answer
         # so far when it nears 2 seconds.
+
+        legal_moves = get_valid_moves(chess_board, color)
+
+        #attempt to stop freezing at the end
+        #it doenst work....
+        #maybe the freezing is normal
+        if not legal_moves:
+            return None
+        if len(legal_moves) == 1:
+            return legal_moves[0]
+
+
+
         start_time = time.time()
 
-        
-
-
-        move = self.minimax(chess_board,True,color,True,0)
-
+        best_move = None
+        mo = None
+        depth = 1
+        while (time.time() - start_time) < 1.9:
+            best_move = mo
+            #mo = self.minimax(deepcopy(chess_board),False,3-color,True,0,depth,start_time)
+            mo = self.minimax(deepcopy(chess_board),True,color,True,0,depth,start_time)
+            depth += 1
 
 
 
@@ -106,6 +142,6 @@ class StudentAgent(Agent):
 
         # Dummy return (you should replace this with your actual logic)
         # Returning a random valid move as an example
-        return move #random_move(chess_board,player)
+        return best_move #random_move(chess_board,player)
 
     
