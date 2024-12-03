@@ -10,7 +10,7 @@ import random
 import math
 
 
-@register_agent("student_agent")
+@register_agent("student_agent_prev")
 class StudentAgent(Agent):
     """
     A class for your implementation. Feel free to use this class to
@@ -19,25 +19,10 @@ class StudentAgent(Agent):
 
     def __init__(self):
         super(StudentAgent, self).__init__()
-        self.name = "StudentAgent"
+        self.name = "StudentAgentPrev"
         self.real_color = None
         self.depths = []
 
-
-    def sort_moves(self, board, color, moves):
-        scores = []
-        for move in moves:
-            sim_board = deepcopy(board)
-            execute_move(sim_board,move, color)
-            score = self.evaluate_board(sim_board, self.real_color)
-            scores.append(score)
-
-        # sort by best moves for player
-        if color == self.real_color:
-            return [x for _, x in sorted(zip(scores, moves), key=lambda pair: pair[0], reverse=True)]
-        # sort by worst moves that opponent makes given players perspective
-        else:
-            return [x for _, x in sorted(zip(scores, moves), key=lambda pair: pair[0], reverse=False)]
 
     def minimax(self, board, self_player, color, start, depth, max_depth, t, a=float('-inf'), b=float('inf')):
         if (time.time() - t) > 1.9:
@@ -46,15 +31,16 @@ class StudentAgent(Agent):
 
         legal_moves = get_valid_moves(board, color)
         #MAKE IT SO THAT EDGE PIECES ARE PRIORITIZED?
-        #random.shuffle(legal_moves)
+        random.shuffle(legal_moves)
         max_score = float('-inf')
         min_score = float('inf')
         best_move = None
         op_color = 3 - color
-        #corners = [(0, 0), (0, board.shape[1] - 1), (board.shape[0] - 1, 0), (board.shape[0] - 1, board.shape[1] - 1)]
+        corners = [(0, 0), (0, board.shape[1] - 1), (board.shape[0] - 1, 0), (board.shape[0] - 1, board.shape[1] - 1)]
         
         fin, player_score, opponent_score = check_endgame(board, color, op_color)
-
+        if self.real_color is None:
+            self.real_color = color
 
 
         if (depth > max_depth) or fin:
@@ -72,7 +58,6 @@ class StudentAgent(Agent):
         #print("\n---------------------------\n Depth: ", depth, "Breadth: ", len(legal_moves))
         # Loop through all possible moves
         i=1
-        legal_moves = self.sort_moves(board, color, legal_moves)
         for move in legal_moves:
             sim_board = deepcopy(board)
             # if move in corners:
@@ -87,7 +72,7 @@ class StudentAgent(Agent):
                     max_score = score
                     best_move = move
                 a = max(a, score)
-                if (a >= b):# and depth > 1:
+                if (a >= b) and depth > 1:
                     #self.depths.append(1-(i/len(legal_moves)))
                     break
             else:
@@ -97,7 +82,7 @@ class StudentAgent(Agent):
                     min_score = score
                     best_move = move
                 b = min(b, score)
-                if (a >= b):# and depth > 1:
+                if (a >= b) and depth > 1:
                     #self.depths.append(1-(i/len(legal_moves)))
                     break
             i+=1
@@ -133,8 +118,6 @@ class StudentAgent(Agent):
         # Some simple code to help you with timing. Consider checking 
         # time_taken during your search and breaking with the best answer
         # so far when it nears 2 seconds.
-        if self.real_color is None:
-            self.real_color = color
 
         legal_moves = get_valid_moves(chess_board, color)
 
@@ -158,18 +141,18 @@ class StudentAgent(Agent):
             #mo = self.minimax(deepcopy(chess_board),False,3-color,True,0,depth,start_time)
             mo = self.minimax(deepcopy(chess_board),True,color,True,0,depth,start_time)
             depth += 1
-        print("\n---------------------------\nFinal Depth: ", depth)
+        print("\n---------------------------\n2Final Depth: ", depth)
 
-        print("Mean Depth: ", sum(self.depths)/len(self.depths))
-        print("Max Depth: ", max(self.depths))
-        print("Min Depth: ", min(self.depths))
-        print("median Depth: ", sorted(self.depths)[len(self.depths)//2])
-        print("Number of Depths: ", len(self.depths))
-        print("Mode Depth: ", max(set(self.depths), key = self.depths.count))
+        print("2Mean Depth: ", sum(self.depths)/len(self.depths))
+        print("2Max Depth: ", max(self.depths))
+        print("2Min Depth: ", min(self.depths))
+        print("2median Depth: ", sorted(self.depths)[len(self.depths)//2])
+        print("2Number of Depths: ", len(self.depths))
+        print("2Mode Depth: ", max(set(self.depths), key = self.depths.count))
 
         time_taken = time.time() - start_time
 
-        print("My AI's turn took ", time_taken, "seconds.")
+        print("2My AI's turn took ", time_taken, "seconds.")
 
         # Dummy return (you should replace this with your actual logic)
         # Returning a random valid move as an example
