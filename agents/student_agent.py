@@ -30,7 +30,7 @@ class StudentAgent(Agent):
             board (np.array): The current game board.
             color (int): The color of the agent.
             moves (list): List of possible moves.
-
+        
         Returns:
             list: List of moves sorted based on the evaluation of the board.
         """
